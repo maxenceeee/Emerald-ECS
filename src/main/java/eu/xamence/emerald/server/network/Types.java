@@ -1,6 +1,7 @@
 package eu.xamence.emerald.server.network;
 
 import eu.xamence.emerald.server.geometry.Position;
+import eu.xamence.emerald.server.geometry.Vector3D;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.text.Component;
 
@@ -91,5 +92,11 @@ public record Types() {
     public static <X, Y> Type<Either<X, Y>> X_OR_Y(Type<X> xType, Type<Y> yType) {
         // TODO
     }
+
+    public static final Type<GameProfile> GAME_PROFILE = getGameProfileType();
+
+    public static final Type<ResolvableProfile> RESOLVABLE_PROFILE = getResolvableProfile();
+
+    public static final Type<Vector3D> LP_VECTOR3 = getLpVector3Type();
 
 }
