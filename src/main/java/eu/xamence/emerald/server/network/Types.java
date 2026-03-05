@@ -28,7 +28,9 @@ public record Types() {
     public static final Type<String> IDENTIFIER = getIdentifierType();
     public static final Type<Integer> VAR_INT = getVarIntType();
     public static final Type<Long> VAR_LONG = getVarLongType();
-    // TODO: EntityMetadata, Slot, HashedSlot
+    // TODO: EntityMetadata
+    public static final Type<Slot> SLOT = getSlotType();
+    public static final Type<HashedSlot> HASHED_SLOT = getHashedSlotType();
     public static final Type<BinaryTag> NBT = getNBTType();
     public static final Type<Position> POSITION = getPositionType();
     public static final Type<Byte> ANGLE = getAngleType();
