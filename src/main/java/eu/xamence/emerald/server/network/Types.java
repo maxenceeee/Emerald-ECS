@@ -73,4 +73,14 @@ public record Types() {
     public static final Type<IDSet> ID_SET = getIdSetType();
 
     public static final Type<SoundEvent> SOUND_EVENT = getSoundEventType();
+
+    public static final Type<ChatType> CHAT_TYPE = getChatType();
+
+    public static final Type<TeleportFlags> TELEPORT_FLAGS = getTeleportFlagsType();
+
+    public static final Type<RecipeDisplay> RECIPE_DISPLAY = getRecipeDisplayType();
+
+    public static final Type<SlotDisplay> SLOT_DISPLAY = getSlotDisplayType();
+
+
 }
