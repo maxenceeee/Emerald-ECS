@@ -84,5 +84,12 @@ public record Types() {
 
     public static final Type<SlotDisplay> SLOT_DISPLAY = getSlotDisplayType();
 
+    public static final Type<ChunkData> CHUNK_DATA = getChunkDataType();
+
+    public static final Type<LightData> LIGHT_DATA = getLightData();
+
+    public static <X, Y> Type<Either<X, Y>> X_OR_Y(Type<X> xType, Type<Y> yType) {
+        // TODO
+    }
 
 }
