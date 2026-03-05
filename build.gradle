@@ -11,4 +11,5 @@ repositories {
 
 dependencies {
     implementation('io.netty:netty-all:4.2.10.Final')
+    implementation("net.kyori:adventure-api:4.26.1")
 }
