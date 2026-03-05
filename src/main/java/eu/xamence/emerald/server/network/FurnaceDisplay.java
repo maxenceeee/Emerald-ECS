@@ -1,6 +1,8 @@
 package eu.xamence.emerald.server.network;
 
 
+import java.util.Objects;
+
 public final class FurnaceDisplay extends RecipeDisplay {
     private final SlotDisplay ingredient;
     private final SlotDisplay fuel;

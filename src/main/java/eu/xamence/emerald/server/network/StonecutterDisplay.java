@@ -1,5 +1,7 @@
 package eu.xamence.emerald.server.network;
 
+import java.util.Objects;
+
 public final class StonecutterDisplay extends RecipeDisplay {
     private final SlotDisplay ingredient;
     private final SlotDisplay result;

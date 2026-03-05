@@ -1,5 +1,7 @@
 package eu.xamence.emerald.server.network;
 
+import java.util.Objects;
+
 public final class SmithingDisplay extends RecipeDisplay {
     private final SlotDisplay template;
     private final SlotDisplay base;

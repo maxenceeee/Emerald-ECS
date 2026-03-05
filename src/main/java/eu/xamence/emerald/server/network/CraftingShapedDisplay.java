@@ -1,5 +1,9 @@
 package eu.xamence.emerald.server.network;
 
+
+import java.util.List;
+import java.util.Objects;
+
 public final class CraftingShapedDisplay extends RecipeDisplay{
     private final int width;
     private final int height;
