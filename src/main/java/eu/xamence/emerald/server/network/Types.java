@@ -5,6 +5,7 @@ import eu.xamence.emerald.server.geometry.Vector3D;
 import eu.xamence.emerald.server.network.type.ChatType;
 import eu.xamence.emerald.server.network.type.IDSet;
 import eu.xamence.emerald.server.network.type.SoundEvent;
+import eu.xamence.emerald.server.network.type.Type;
 import eu.xamence.emerald.server.network.type.data.ChunkData;
 import eu.xamence.emerald.server.network.type.data.HashedSlot;
 import eu.xamence.emerald.server.network.type.data.LightData;
@@ -18,6 +19,10 @@ import eu.xamence.emerald.server.network.type.utils.Either;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.text.Component;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.Optional;
@@ -36,7 +41,35 @@ public record Types() {
     public static final Type<Long> LONG = getLongType();
     public static final Type<Float> FLOAT = getFloatType();
     public static final Type<Double> DOUBLE = getDoubleType();
-    public static final Type<String> STRING = getStringType();
+
+    public static Type<String> STRING (int maxLength) {
+        return new Type<String>() {
+            @Override
+            public String read(DataInputStream stream) throws IOException {
+                int length = VAR_INT.read(stream);
+
+                if (length > maxLength * 3)
+                    throw new IOException("String too long");
+
+                byte[] bytes = new byte[length];
+                stream.readFully(bytes);
+
+                return new String(bytes, StandardCharsets.UTF_8);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, String value) throws IOException {
+                byte[] bytes =  value.getBytes(StandardCharsets.UTF_8);
+
+                if (bytes.length > maxLength * 3)
+                    throw new IOException("String too long");
+
+                VAR_INT.write(stream, bytes.length);
+                stream.write(bytes);
+            }
+        };
+    }
+
     public static final Type<Component> COMPONENT = getComponentType();
     public static final Type<Component> JSON_COMPONENT = getComponentType();
     public static final Type<String> IDENTIFIER = getIdentifierType();
@@ -112,4 +145,129 @@ public record Types() {
 
     public static final Type<Vector3D> LP_VECTOR3 = getLpVector3Type();
 
+    private static Type<Boolean> getBooleanType() {
+        return new Type<Boolean>() {
+            @Override
+            public Boolean read(DataInputStream stream) throws IOException {
+                return stream.readBoolean();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Boolean value) throws IOException {
+                stream.writeBoolean(value);
+            }
+        };
+    }
+
+    private static Type<Byte> getByteType() {
+        return new Type<Byte>() {
+            @Override
+            public Byte read(DataInputStream stream) throws IOException {
+                return stream.readByte();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Byte value) throws IOException {
+                stream.writeByte(value);
+            }
+        };
+    }
+
+    private static Type<Byte> getUnsignedByteType() {
+        return new Type<Byte>() {
+            @Override
+            public Byte read(DataInputStream stream) throws IOException {
+                return (byte) (stream.readByte() & 0xFF);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Byte value) throws IOException {
+                stream.writeByte(value);
+            }
+        };
+    }
+
+    private static Type<Short> getShortType() {
+        return new Type<Short>() {
+            @Override
+            public Short read(DataInputStream stream) throws IOException {
+                return stream.readShort();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Short value) throws IOException {
+                stream.writeShort(value);
+            }
+        };
+    }
+
+    private static Type<Short> getUnsignedShortType() {
+        return new Type<Short>() {
+            @Override
+            public Short read(DataInputStream stream) throws IOException {
+                return (short) stream.readUnsignedShort();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Short value) throws IOException {
+                stream.writeShort(value);
+            }
+        };
+    }
+
+    private static Type<Integer> getIntegerType() {
+        return new Type<Integer>() {
+            @Override
+            public Integer read(DataInputStream stream) throws IOException {
+                return stream.readInt();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Integer value) throws IOException {
+                stream.writeInt(value);
+            }
+        };
+    }
+
+    private static Type<Long> getLongType() {
+        return new Type<Long>() {
+            @Override
+            public Long read(DataInputStream stream) throws IOException {
+                return stream.readLong();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Long value) throws IOException {
+                stream.writeLong(value);
+            }
+        };
+    }
+
+    private static Type<Float> getFloatType() {
+        return new Type<Float>() {
+            @Override
+            public Float read(DataInputStream stream) throws IOException {
+                return stream.readFloat();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Float value) throws IOException {
+                stream.writeFloat(value);
+            }
+        };
+    }
+
+    private static Type<Double> getDoubleType() {
+        return new Type<Double>() {
+            @Override
+            public Double read(DataInputStream stream) throws IOException {
+                return stream.readDouble();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Double value) throws IOException {
+                stream.writeDouble(value);
+            }
+        };
+    }
 }
