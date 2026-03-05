@@ -30,6 +30,9 @@ import java.util.UUID;
 
 // https://minecraft.wiki/w/Java_Edition_protocol/Data_types
 public record Types() {
+    private static final int SEGMENT_BITS = 0x7F;
+    private static final int CONTINUE_BIT = 0x80;
+
 
     // Primitive
     public static final Type<Boolean> BOOLEAN = getBooleanType();
@@ -71,8 +74,8 @@ public record Types() {
     }
 
     public static final Type<Component> COMPONENT = getComponentType();
-    public static final Type<Component> JSON_COMPONENT = getComponentType();
-    public static final Type<String> IDENTIFIER = getIdentifierType();
+    public static final Type<Component> JSON_COMPONENT = COMPONENT;
+    public static final Type<String> IDENTIFIER = STRING(32767);
     public static final Type<Integer> VAR_INT = getVarIntType();
     public static final Type<Long> VAR_LONG = getVarLongType();
     // TODO: EntityMetadata
@@ -270,4 +273,87 @@ public record Types() {
             }
         };
     }
+
+    private static Type<Component> getComponentType() {
+        // TODO
+    }
+
+    private static Type<Integer> getVarIntType() {
+        return new Type<>() {
+            @Override
+            public Integer read(DataInputStream in) throws IOException {
+                int value = 0;
+                int length = 0;
+                byte currentByte;
+
+                do {
+                    currentByte = in.readByte();
+                    value |= (currentByte & SEGMENT_BITS) << (length * 7);
+                    length++;
+                    if (length > 5) {
+                        throw new IOException("VarInt too long");
+                    }
+                } while ((currentByte & CONTINUE_BIT) == CONTINUE_BIT);
+
+                return value;
+            }
+
+            @Override
+            public void write(DataOutputStream out, Integer value) throws IOException {
+                while (true) {
+
+                    if ((value & ~SEGMENT_BITS) == 0) {
+                        out.writeByte(value);
+                        return;
+                    } else {
+                        out.writeByte((value & SEGMENT_BITS) | CONTINUE_BIT);
+                        value >>>= 7;
+                    }
+                }
+            }
+        };
+    }
+
+    private static Type<Long> getVarLongType() {
+        return new Type<>() {
+            @Override
+            public Long read(DataInputStream in) throws IOException {
+                long value = 0;
+                int position = 0;
+                byte currentByte;
+
+                while (true) {
+                    currentByte = in.readByte();
+                    value |= (long) (currentByte & SEGMENT_BITS) << position;
+
+                    if ((currentByte & CONTINUE_BIT) == 0) break;
+
+                    position += 7;
+
+                    if (position >= 64) throw new RuntimeException("VarLong is too big");
+                }
+
+                return value;
+            }
+
+            @Override
+            public void write(DataOutputStream out, Long value) throws IOException {
+                while (true) {
+                    if ((value & ~ SEGMENT_BITS) == 0) {
+                        out.writeByte(Math.toIntExact(value));
+                        return;
+                    }
+
+                    out.write((int) ((value & SEGMENT_BITS) | CONTINUE_BIT));
+
+                    // Note: >>> means that the leftmost bits are filled with zeroes regardless of the sign,
+                    // rather than being filled with copies of the sign bit to preserve the sign.
+                    // In languages that don't have a ">>>" operator, This behavior can often be selected by
+                    // performing the shift on an unsigned type.
+                    value >>>= 7;
+                }
+            }
+        };
+    }
+
 }
