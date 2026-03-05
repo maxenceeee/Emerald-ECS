@@ -1,0 +1,14 @@
+plugins {
+    id 'java'
+}
+
+group = 'eu.xamence'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('io.netty:netty-all:4.2.10.Final')
+}
