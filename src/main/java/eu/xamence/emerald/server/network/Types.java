@@ -18,15 +18,14 @@ import eu.xamence.emerald.server.network.type.profile.ResolvableProfile;
 import eu.xamence.emerald.server.network.type.utils.Either;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.ComponentSerializer;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.BitSet;
-import java.util.EnumSet;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.zip.CRC32C;
 
 // https://minecraft.wiki/w/Java_Edition_protocol/Data_types
 public record Types() {
@@ -352,6 +351,104 @@ public record Types() {
                     // performing the shift on an unsigned type.
                     value >>>= 7;
                 }
+            }
+        };
+    }
+
+    private static Type<Slot> getSlotType() {
+        return new Type<Slot>() {
+            @Override
+            public Slot read(DataInputStream stream) throws IOException {
+                int itemCount = VAR_INT.read(stream);
+                Optional<Integer> itemID = Optional.empty();
+                List<Component> componentToAdd = List.of();
+                List<Component> componentToRemove = List.of();
+
+                if (itemCount > 0) {
+                    itemID = OPTIONAL(VAR_INT).read(stream);
+
+                    int componentToAddCount = VAR_INT.read(stream);
+                    componentToAdd = List.of(PREFIXED_ARRAY(COMPONENT).read(stream));
+
+                    int componentToRemoveCount = VAR_INT.read(stream);
+                    componentToRemove = List.of(PREFIXED_ARRAY(COMPONENT).read(stream));
+                }
+
+                return new Slot(itemCount, itemID.orElse(null), componentToAdd, componentToRemove);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Slot value) throws IOException {
+                VAR_INT.write(stream, value.getItemCount());
+
+                if (value.getItemCount() > 0) {
+                    VAR_INT.write(stream, value.getItemId().orElseThrow(() -> new IOException("Item ID is missing")));
+
+                    PREFIXED_ARRAY(COMPONENT).write(stream, value.getComponentsToAdd().toArray(new Component[0]));
+                    PREFIXED_ARRAY(COMPONENT).write(stream, value.getComponentsToRemove().toArray(new Component[0]));
+
+                }
+            }
+        };
+    }
+
+    private static Type<HashedSlot> getHashedSlotType() {
+        return new Type<HashedSlot>() {
+            @Override
+            public HashedSlot read(DataInputStream stream) throws IOException {
+                boolean hasItem = BOOLEAN.read(stream);
+
+                Optional<Integer> itemId = Optional.empty();
+                Optional<Integer> itemCount = Optional.empty();
+                List<Component> componentsToAdd = new ArrayList<>();
+                List<Integer> componentDataHashes = new ArrayList<>();
+                List<Component> componentsToRemove = new ArrayList<>();
+
+                if (hasItem) {
+                    itemId = Optional.of(VAR_INT.read(stream));
+
+                    itemCount = Optional.of(VAR_INT.read(stream));
+
+                    int componentsToAddCount = VAR_INT.read(stream);
+                    for (int i = 0; i < componentsToAddCount; i++) {
+                        Component component = COMPONENT.read(stream);
+                        int dataHash = INTEGER.read(stream);
+                        componentsToAdd.add(component);
+                        componentDataHashes.add(dataHash);
+                    }
+
+                    int componentsToRemoveCount = VAR_INT.read(stream);
+                    for (int i = 0; i < componentsToRemoveCount; i++) {
+                        componentsToRemove.add(COMPONENT.read(stream));
+                    }
+                }
+
+                return new HashedSlot(hasItem, itemId, itemCount, componentsToAdd, componentDataHashes, componentsToRemove);
+            }
+
+
+
+            @Override
+            public void write(DataOutputStream stream, HashedSlot value) throws IOException {
+                Types.BOOLEAN.write(stream, value.hasItem());
+
+                if (value.hasItem()) {
+                    Types.VAR_INT.write(stream, value.getItemId().orElseThrow(() -> new IOException("Item ID is missing")));
+
+                    Types.VAR_INT.write(stream, value.getItemCount().orElseThrow(() -> new IOException("Item count is missing")));
+
+                    Types.VAR_INT.write(stream, value.getComponentsToAdd().size());
+                    for (int i = 0; i < value.getComponentsToAdd().size(); i++) {
+                        Types.COMPONENT.write(stream, value.getComponentsToAdd().get(i));
+                        Types.INTEGER.write(stream, value.getComponentDataHashes().get(i));
+                    }
+
+                    Types.VAR_INT.write(stream, value.getComponentsToRemove().size());
+                    for (Component component : value.getComponentsToRemove()) {
+                        Types.COMPONENT.write(stream, component);
+                    }
+                }
+
             }
         };
     }

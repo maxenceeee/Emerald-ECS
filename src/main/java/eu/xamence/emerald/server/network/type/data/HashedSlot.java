@@ -13,7 +13,7 @@ public final class HashedSlot {
     private final List<Integer> componentDataHashes;
     private final List<Component> componentsToRemove;
 
-    private HashedSlot(boolean hasItem, Optional<Integer> itemId, Optional<Integer> itemCount,
+    public HashedSlot(boolean hasItem, Optional<Integer> itemId, Optional<Integer> itemCount,
                        List<Component> componentsToAdd, List<Integer> componentDataHashes,
                        List<Component> componentsToRemove) {
         this.hasItem = hasItem;
