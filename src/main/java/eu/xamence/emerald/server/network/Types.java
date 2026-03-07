@@ -20,14 +20,12 @@ import eu.xamence.emerald.server.network.type.utils.Either;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.BinaryTagType;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.ComponentSerializer;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.zip.CRC32C;
 
 // https://minecraft.wiki/w/Java_Edition_protocol/Data_types
 public record Types() {
@@ -89,15 +87,82 @@ public record Types() {
     public static final Type<BitSet> BIT_SET = getBitSetType();
 
     public static Type<BitSet> FIXED_BIT_SET(int length) {
-        // TODO
+        return new Type<BitSet>() {
+
+            final int byteLength = (int) Math.ceil(length / 8);
+            @Override
+            public BitSet read(DataInputStream stream) throws IOException {
+                byte[] bytes = new byte[byteLength];
+
+                stream.readFully(bytes);
+                BitSet bitSet =  BitSet.valueOf(bytes);
+
+                return bitSet.get(0, byteLength);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, BitSet value) throws IOException {
+                byte[] bytes = value.toByteArray();
+
+                // To be sure the bitSet contains the right length
+                byte[] paddedBytes =  new byte[byteLength];
+                System.arraycopy(bytes, 0, paddedBytes, 0, Math.min(bytes.length, byteLength));
+
+                stream.write(paddedBytes);
+            }
+        }
     }
 
+
+    /// If an exception like `EOFException` is trigger, it's cuz the optional is empty.
     public static <T> Type<Optional<T>> OPTIONAL(Type<T> type) {
-        // TODO
+        return new Type<Optional<T>>() {
+            @Override
+            public Optional<T> read(DataInputStream stream) throws IOException {
+                try {
+                    T value = type.read(stream);
+                    return Optional.of(value);
+                } catch (IOException _) {
+                    return Optional.empty();
+                }
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Optional<T> value) throws IOException {
+                value.ifPresent(v -> {
+                    try {
+                        type.write(stream, v);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to write an Optional ", e);
+                    }
+                });
+            }
+        };
+
     }
 
     public static <T> Type<Optional<T>> PREFIXED_OPTIONAL(Type<T> type) {
-        // TODO
+        return new Type<Optional<T>>() {
+            @Override
+            public Optional<T> read(DataInputStream stream) throws IOException {
+                boolean containsValue = stream.readBoolean();
+
+                if (containsValue)
+                    return Optional.of(type.read(stream));
+                else
+                    return Optional.empty();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Optional<T> value) throws IOException {
+                boolean containsValue = value.isPresent();
+
+                stream.writeBoolean(containsValue);
+
+                if (containsValue)
+                    type.write(stream, value.get());
+            }
+        };
     }
 
     public static <T> Type<T[]> ARRAY(Type<T> type) {
@@ -503,6 +568,49 @@ public record Types() {
         };
     }
 
+    private static Type<UUID> getUUIDType() {
+        return new Type<UUID>() {
+            @Override
+            public UUID read(DataInputStream stream) throws IOException {
+                long mostSigBits = stream.readLong();
+                long leastSigBits = stream.readLong();
+                return new UUID(mostSigBits, leastSigBits);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, UUID value) throws IOException {
+                stream.writeLong(value.getMostSignificantBits());
+                stream.writeLong(value.getLeastSignificantBits());
+            }
+        };
+    }
+
+    private static Type<BitSet> getBitSetType() {
+        return new Type<BitSet>() {
+            @Override
+            public BitSet read(DataInputStream stream) throws IOException {
+                int length = VAR_INT.read(stream);
+
+                long[] longs = new long[length];
+
+                for (int i = 0; i < length; i++)
+                    longs[i] = stream.readLong();
+
+                return BitSet.valueOf(longs);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, BitSet value) throws IOException {
+                long[] longs = value.toLongArray();
+
+                VAR_INT.write(stream, longs.length);
+
+                for (long l : longs)
+                    stream.writeLong(l);
+            }
+        };
+    }
+
     public static byte toAngleByte(float degrees) {
         return (byte) (degrees * 256f / 360f);
     }
@@ -510,5 +618,6 @@ public record Types() {
     public static float toDegrees(float angleBytes) {
         return angleBytes * 360f / 256f;
     }
+
 
 }
