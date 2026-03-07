@@ -13,10 +13,12 @@ import eu.xamence.emerald.server.network.type.data.Slot;
 import eu.xamence.emerald.server.network.type.display.RecipeDisplay;
 import eu.xamence.emerald.server.network.type.display.SlotDisplay;
 import eu.xamence.emerald.server.network.type.enumtype.TeleportFlags;
+import eu.xamence.emerald.server.network.type.nbt.NBTUtils;
 import eu.xamence.emerald.server.network.type.profile.GameProfile;
 import eu.xamence.emerald.server.network.type.profile.ResolvableProfile;
 import eu.xamence.emerald.server.network.type.utils.Either;
 import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.BinaryTagType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 
@@ -452,5 +454,25 @@ public record Types() {
             }
         };
     }
+
+
+    private static Type<BinaryTag> getNBTType() {
+        return new Type<BinaryTag>() {
+            @Override
+            public BinaryTag read(DataInputStream stream) throws IOException {
+                BinaryTagType<? extends BinaryTag> type = NBTUtils.nbtTypeFromId(stream.readByte());
+                return type.read(stream);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, BinaryTag value) throws IOException {
+                BinaryTagType<BinaryTag> type = (BinaryTagType<BinaryTag>) value.type();
+                stream.writeByte(type.id());
+                type.write(value, stream);
+            }
+        };
+    }
+
+
 
 }
