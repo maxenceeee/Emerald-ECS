@@ -473,6 +473,42 @@ public record Types() {
         };
     }
 
+    private static Type<Position> getPositionType() {
+        return new Type<Position>() {
+            @Override
+            public Position read(DataInputStream stream) throws IOException {
+                long encodedPosition = stream.readLong();
+                return Position.decodePosition(encodedPosition);
+            }
 
+            @Override
+            public void write(DataOutputStream stream, Position value) throws IOException {
+                long encodedPosition = Position.encodePosition(value);
+                stream.writeLong(encodedPosition);
+            }
+        };
+    }
+
+    private static Type<Byte> getAngleType() {
+        return new Type<Byte>() {
+            @Override
+            public Byte read(DataInputStream stream) throws IOException {
+                return stream.readByte();
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Byte value) throws IOException {
+                stream.writeByte(value);
+            }
+        };
+    }
+
+    public static byte toAngleByte(float degrees) {
+        return (byte) (degrees * 256f / 360f);
+    }
+
+    public static float toDegrees(float angleBytes) {
+        return angleBytes * 360f / 256f;
+    }
 
 }
