@@ -214,11 +214,61 @@ public record Types() {
     }
 
     public static <E extends Enum<E>> Type<E> ENUM(Class<E> enumClass) {
-        //TODO
+        final E[] constants = enumClass.getEnumConstants();
+
+        return new Type<E>() {
+            @Override
+            public E read(DataInputStream stream) throws IOException {
+                int ordinal = Types.VAR_INT.read(stream);
+
+                if (ordinal < 0 || ordinal >= constants.length)
+                    throw new IOException("Invalid enum ordinal: " + ordinal);
+
+                return constants[ordinal];
+            }
+
+            @Override
+            public void write(DataOutputStream stream, E value) throws IOException {
+                if (value == null)
+                    throw new IOException("Enum value cannot be null");
+
+                Types.VAR_INT.write(stream, value.ordinal());
+            }
+        };
     }
 
     public static <E extends Enum<E>> Type<EnumSet<E>> ENUM_SET(Class<E> enumClass) {
-        // TODO
+        final E[] values = enumClass.getEnumConstants();
+        final int length = values.length;
+        final Type<BitSet> bitSetType = Types.FIXED_BIT_SET(length);
+
+
+        return new Type<EnumSet<E>>() {
+            @Override
+            public EnumSet<E> read(DataInputStream stream) throws IOException {
+                BitSet bitSet = bitSetType.read(stream);
+                EnumSet<E> set = EnumSet.noneOf(enumClass);
+
+                for (int i = 0; i < length; i++) {
+                    if (bitSet.get(i)) {
+                        set.add(values[i]);
+                    }
+                }
+
+                return set;
+            }
+
+            @Override
+            public void write(DataOutputStream stream, EnumSet<E> value) throws IOException {
+                BitSet bitSet = new BitSet(length);
+
+                for (int i = 0; i < length; i++) {
+                    bitSet.set(i, value.contains(values[i]));
+                }
+
+                bitSetType.write(stream, bitSet);
+            }
+        };
     }
 
     public static final Type<Byte[]> BYTE_ARRAY = getByteArrayType();
