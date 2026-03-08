@@ -24,6 +24,7 @@ import net.kyori.adventure.text.Component;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -165,12 +166,51 @@ public record Types() {
         };
     }
 
-    public static <T> Type<T[]> ARRAY(Type<T> type) {
-        // TODO
+    public static <T> Type<T[]> ARRAY(Type<T> type, int length) {
+        return new Type<T[]>() {
+            @Override
+            public T[] read(DataInputStream stream) throws IOException {
+                T[] array = (T[]) Array.newInstance(type.getClass().getComponentType(), length);
+
+                for (int i = 0; i < length; i++)
+                    array[i] = type.read(stream);
+
+                return array;
+            }
+
+            @Override
+            public void write(DataOutputStream stream, T[] value) throws IOException {
+                if (value.length != length)
+                    throw new IOException("Array length mismatch: expected " + length + ", got " + value.length);
+
+                for (T element : value)
+                    type.write(stream, element);
+            }
+        };
     }
 
     public static <T> Type<T[]> PREFIXED_ARRAY(Type<T> type) {
-        // TODO
+        return new Type<T[]>() {
+            @Override
+            public T[] read(DataInputStream stream) throws IOException {
+                int length = VAR_INT.read(stream);
+
+                T[] array = (T[]) Array.newInstance(type.getClass().getComponentType(), length);
+
+                for (int i = 0; i< length; i++)
+                    array[i] = type.read(stream);
+
+                return array;
+            }
+
+            @Override
+            public void write(DataOutputStream stream, T[] value) throws IOException {
+                int length = value.length;
+                VAR_INT.write(stream, length);
+
+                for (T element : value) type.write(stream, element);
+            }
+        };
     }
 
     public static <E extends Enum<E>> Type<E> ENUM(Class<E> enumClass) {
