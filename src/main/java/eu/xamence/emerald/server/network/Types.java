@@ -292,7 +292,30 @@ public record Types() {
     }
 
     public static <T> Type<Either<Integer, T>> ID_OR_X(Type<T> type) {
-        // TODO
+        return new Type<Either<Integer, T>>() {
+            @Override
+            public Either<Integer, T> read(DataInputStream stream) throws IOException {
+                final int id = VAR_INT.read(stream);
+
+                if (id == 0) {
+                    final T value = type.read(stream);
+
+                    return Either.ofY(value);
+                } else
+                    return Either.ofX(id - 1);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, Either<Integer, T> value) throws IOException {
+                if (value.isX()) {
+                    int id = value.getX();
+                    VAR_INT.write(stream, id + 1);
+                } else {
+                    VAR_INT.write(stream, 0);
+                    type.write(stream, value.getY());
+                }
+            }
+        };
     }
 
     public static final Type<IDSet> ID_SET = getIdSetType();
@@ -714,6 +737,40 @@ public record Types() {
 
                 for (long l : longs)
                     stream.writeLong(l);
+            }
+        };
+    }
+
+    private static Type<IDSet> getIdSetType() {
+        return new Type<IDSet>() {
+            @Override
+            public IDSet read(DataInputStream stream) throws IOException {
+                final int type = VAR_INT.read(stream);
+
+                if (type == 0) {
+                    final String tagName = IDENTIFIER.read(stream);
+                    return IDSet.byTag(tagName);
+                } else {
+                    List<Integer> ids = new ArrayList<>(type - 1);
+                    for (int i = 0; i < type - 1; i++) {
+                        ids.add(VAR_INT.read(stream));
+                    }
+
+                    return IDSet.byIds(ids);
+                }
+            }
+
+            @Override
+            public void write(DataOutputStream stream, IDSet value) throws IOException {
+                VAR_INT.write(stream, value.type());
+
+                if (value.isTag()) {
+                    IDENTIFIER.write(stream, value.tagName().orElseThrow(() -> new IOException("Tag name is missing")));
+                } else {
+                    for (int id : value.ids().orElseThrow(() -> new IOException("IDs list is missing"))) {
+                        VAR_INT.write(stream, id);
+                    }
+                }
             }
         };
     }
