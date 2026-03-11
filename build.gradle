@@ -18,4 +18,11 @@ dependencies {
     implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
     implementation("net.kyori:adventure-text-serializer-plain:4.26.1")
     implementation("net.kyori:adventure-text-serializer-ansi:4.26.1")
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test     {
+    useJUnitPlatform()
 }

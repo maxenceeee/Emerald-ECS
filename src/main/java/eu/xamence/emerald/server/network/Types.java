@@ -112,7 +112,7 @@ public record Types() {
 
                 stream.write(paddedBytes);
             }
-        }
+        };
     }
 
 
@@ -838,6 +838,20 @@ public record Types() {
                 STRING(MAX_TRANSLATION_KEY_LENGTH).write(stream, value.translationKey());
                 PREFIXED_ARRAY(Types.ENUM(ChatTypeParameter.class)).write(stream, (ChatTypeParameter[]) value.parameters().toArray());
                 NBT.write(stream, value.style());
+            }
+        };
+    }
+
+    private static Type<TeleportFlags> getTeleportFlagsType() {
+        return new Type<TeleportFlags>() {
+            @Override
+            public TeleportFlags read(DataInputStream stream) throws IOException {
+                return TeleportFlags.of(UNSIGNED_BYTE.read(stream));
+            }
+
+            @Override
+            public void write(DataOutputStream stream, TeleportFlags value) throws IOException {
+                INTEGER.write(stream, value.toInt() & 0xFF);
             }
         };
     }

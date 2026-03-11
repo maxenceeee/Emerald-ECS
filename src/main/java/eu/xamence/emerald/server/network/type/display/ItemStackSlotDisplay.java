@@ -2,6 +2,8 @@ package eu.xamence.emerald.server.network.type.display;
 
 import eu.xamence.emerald.server.network.type.data.Slot;
 
+import java.util.Objects;
+
 public final class ItemStackSlotDisplay extends SlotDisplay {
     private final Slot itemStack;
 
