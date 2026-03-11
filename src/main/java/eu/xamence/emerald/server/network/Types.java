@@ -12,6 +12,7 @@ import eu.xamence.emerald.server.network.type.data.LightData;
 import eu.xamence.emerald.server.network.type.data.Slot;
 import eu.xamence.emerald.server.network.type.display.RecipeDisplay;
 import eu.xamence.emerald.server.network.type.display.SlotDisplay;
+import eu.xamence.emerald.server.network.type.enumtype.ChatTypeParameter;
 import eu.xamence.emerald.server.network.type.enumtype.TeleportFlags;
 import eu.xamence.emerald.server.network.type.nbt.NBTUtils;
 import eu.xamence.emerald.server.network.type.profile.GameProfile;
@@ -797,6 +798,46 @@ public record Types() {
                 if (value.hasFixedRange())
                     FLOAT.write(stream, value.fixedRange().orElseThrow(()
                             -> new IOException("Fixed range is missing !")));
+            }
+        };
+    }
+
+    private static final int MAX_TRANSLATION_KEY_LENGTH = 255;
+    private static final int MAX_PARAMETERS_COUNT = 3;
+    private static Type<ChatType> getChatType() {
+
+        return new Type<ChatType>() {
+            @Override
+            public ChatType read(DataInputStream stream) throws IOException {
+                final String translationKey = STRING(MAX_TRANSLATION_KEY_LENGTH).read(stream);
+                ChatTypeParameter[] parameters = PREFIXED_ARRAY(ENUM(ChatTypeParameter.class)).read(stream);
+
+                if (parameters.length > MAX_PARAMETERS_COUNT)
+                    throw new IOException("Too many chat types parameters: " + parameters.length + " (max: " + MAX_PARAMETERS_COUNT + ").");
+
+                // Double parameters
+                if (parameters.length != Arrays.stream(parameters).distinct().count())
+                    throw new IOException("Duplicate chat type parameters");
+
+                BinaryTag style = NBT.read(stream);
+
+                return new ChatType(translationKey, Arrays.stream(parameters).toList(), style);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, ChatType value) throws IOException {
+                if (value.translationKey().length() > MAX_TRANSLATION_KEY_LENGTH)
+                    throw new IOException("Translation key too long");
+
+                if (value.parameters().size() > MAX_PARAMETERS_COUNT)
+                    throw new IOException("Too many chat type parameters");
+
+                if (value.parameters().size() != value.parameters().stream().distinct().count())
+                    throw new IOException("Duplicate chat type parameters");
+
+                STRING(MAX_TRANSLATION_KEY_LENGTH).write(stream, value.translationKey());
+                PREFIXED_ARRAY(Types.ENUM(ChatTypeParameter.class)).write(stream, (ChatTypeParameter[]) value.parameters().toArray());
+                NBT.write(stream, value.style());
             }
         };
     }
