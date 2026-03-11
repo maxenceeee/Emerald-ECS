@@ -271,7 +271,7 @@ public record Types() {
         };
     }
 
-    public static final Type<Byte[]> BYTE_ARRAY = getByteArrayType();
+    public static final Type<byte[]> BYTE_ARRAY = getByteArrayType();
 
 
     public static <T> Type<Either<Integer, T>> ID_OR_X(Type<T> type) {
@@ -697,6 +697,26 @@ public record Types() {
 
                 for (long l : longs)
                     stream.writeLong(l);
+            }
+        };
+    }
+
+    private static Type<byte[]> getByteArrayType(int length) {
+        return new Type<byte[]>() {
+            @Override
+            public byte[] read(DataInputStream stream) throws IOException {
+                byte[] data = new byte[length];
+                stream.readFully(data);
+
+                return data;
+            }
+
+            @Override
+            public void write(DataOutputStream stream, byte[] value) throws IOException {
+                if (value.length != length)
+                    throw new IOException("Byte array lentgh mismatch. Need " + length + ", but got " + value.length);
+
+                stream.write(value);
             }
         };
     }
