@@ -775,6 +775,32 @@ public record Types() {
         };
     }
 
+    private static Type<SoundEvent> getSoundEventType() {
+        return new Type<SoundEvent>() {
+            @Override
+            public SoundEvent read(DataInputStream stream) throws IOException {
+                String soundName = IDENTIFIER.read(stream);
+                boolean hasFixedRange = BOOLEAN.read(stream);
+
+                if (hasFixedRange) {
+                    float fixedRange = FLOAT.read(stream);
+                    return SoundEvent.withFixedRange(soundName, fixedRange);
+                } else
+                    return SoundEvent.withVariableRange(soundName);
+            }
+
+            @Override
+            public void write(DataOutputStream stream, SoundEvent value) throws IOException {
+                IDENTIFIER.write(stream, value.soundName());
+                BOOLEAN.write(stream, value.hasFixedRange());
+
+                if (value.hasFixedRange())
+                    FLOAT.write(stream, value.fixedRange().orElseThrow(()
+                            -> new IOException("Fixed range is missing !")));
+            }
+        };
+    }
+
     public static byte toAngleByte(float degrees) {
         return (byte) (degrees * 256f / 360f);
     }
